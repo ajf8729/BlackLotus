@@ -20,7 +20,7 @@ This script was designed to be able to run in multiple ways, such as:
 .\BlackLotusPhase2Remediation.ps1
 
 .NOTES
-Version: 1.0
+Version: 1.1
 Author: Anthony Fontanez
 Initial creation date: 2025-05-18
 #>
@@ -97,15 +97,27 @@ if ($SecureBootDBX -notmatch 'Microsoft Windows Production PCA 2011') {
     # Set AvailableUpdates to 0x80 and trigger scheduled task to update the Secure Boot DBX
     Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Secureboot -Name AvailableUpdates -Value 0x80 -Force
     Start-ScheduledTask -TaskName '\Microsoft\Windows\PI\Secure-Boot-Update'
-    # Wait for up to 2 minutes for event 1037 to indicate update was applied
+    # Wait for up to 2 minutes for event ID 1037 to indicate update was applied, or event ID 1800 to indicate a reboot is required
     for ($i = 0; $i -lt 12; $i++) {
         # Event ID 1037: "Secure Boot Dbx update to revoke Microsoft Windows Production PCA 2011 is applied successfully"
         $event1037 = Get-WinEvent -LogName System -MaxEvents 1000 | Where-Object {$_.Id -eq 1037}
-        if (-not $event1037) {
+        # Event ID 1800: "Reboot needed before continuing"
+        $event1800 = Get-WinEvent -LogName System -MaxEvents 1000 | Where-Object {$_.Id -eq 1800}
+        if (-not $event1037 -and -not $event1800) {
             Start-Sleep -Seconds 10
         }
     }
-    if ($event1037) {
+    if ($event1800 -and -not $event1037) {
+        Write-Log -Message 'Reboot needed before continuing' -Component 'Step 2' -Type 2 -LogFile $LogFile
+        if ($RunningAsCcmExec) {
+            return $false
+        }
+        else {
+            Write-Output 'Reboot needed before continuing'
+            exit 1
+        }
+    }
+    elseif ($event1037) {
         # Verify Step 1 is complete
         $SecureBootDBX = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbx).bytes)
         # If 2011 CA is in the DBX, continue to step 2, otherwise exit as incomplete
