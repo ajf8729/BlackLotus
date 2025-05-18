@@ -2,6 +2,8 @@
 
 BlackLotus aka CVE-2023-24932 remediation scripts for Intune, ConfigMgr, and generic ad-hoc use.
 
+Blog post: https://ajf.one/blacklotus
+
 ## General Notes
 
 * These remediation scripts do NOT initiate any reboots. These are designed to be run "over time", and eventually the device will report as compliant over its course of "natural" reboots, either due to monthly updates, user-initiated, or otherwise.
