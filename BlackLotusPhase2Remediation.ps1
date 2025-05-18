@@ -52,6 +52,21 @@ if ($ParentProcessName -eq 'CcmExec' -or $ParentProcessName -eq 'WmiPrvSE') {
     $RunningAsCcmExec = $true
 }
 
+# Verify device is ready for phase 2 remediation
+
+$WindowsUEFICA2023Capable = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing -Name WindowsUEFICA2023Capable -ErrorAction Ignore
+
+# Check if we are already in expected state, and exit if so
+if ($WindowsUEFICA2023Capable -ne 2) {
+    if ($RunningAsCcmExec) {
+        return $false
+    }
+    else {
+        Write-Output 'Device not ready for BlackLotus Phase 2 remediation'
+        exit 1
+    }
+}
+
 # Get current Secure Boot DBX information
 $SecureBootDBX = [System.Text.Encoding]::ASCII.GetString((Get-SecureBootUEFI dbx).bytes)
 
