@@ -11,6 +11,8 @@ BlackLotus aka CVE-2023-24932 remediation scripts for Intune, ConfigMgr, and gen
 
 ## Phase 1: Installing the updated certificate definitions to the DB, and updating the Boot Manager on your device
 
+<img src="https://raw.githubusercontent.com/ajf8729/BlackLotus/refs/heads/main/images/phase1.svg">
+
 The Phase 1 script will perform steps 1 & 2 from the [guidance published by Microsoft](https://support.microsoft.com/en-us/topic/how-to-manage-the-windows-boot-manager-revocations-for-secure-boot-changes-associated-with-cve-2023-24932-41a975df-beb2-40c1-99a3-b3ff139f832d), by doing the following:
 
 1. Set the `AvailableUpdates` registry value to `0x40`
