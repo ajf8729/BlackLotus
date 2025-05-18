@@ -14,10 +14,10 @@ BlackLotus aka CVE-2023-24932 remediation scripts for Intune, ConfigMgr, and gen
 The Phase 1 script will perform steps 1 & 2 from the [guidance published by Microsoft](https://support.microsoft.com/en-us/topic/how-to-manage-the-windows-boot-manager-revocations-for-secure-boot-changes-associated-with-cve-2023-24932-41a975df-beb2-40c1-99a3-b3ff139f832d), by doing the following:
 
 1. Set the `AvailableUpdates` registry value to `0x40`
-2. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task
+2. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task to perform step 1, "Install the updated certificate definitions to the DB"
 3. Validate step 1 is complete
-4. the `AvailableUpdates` registry value to `0x100`
-5. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task again
+4. Set the `AvailableUpdates` registry value to `0x100`
+5. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task to perform step 2, "Update the Boot Manager on your device"
 6. Validate step 2 is complete
 
 Validation is done between each step, and will be logged to `$env:TEMP\BlackLotusPhase1Remediation.log`, as well as returned to Intune (if running the script as a Remediation).
@@ -27,8 +27,8 @@ Validation is done between each step, and will be logged to `$env:TEMP\BlackLotu
 The Phase 2 script will perform steps 3 & 4 from the [guidance published by Microsoft](https://support.microsoft.com/en-us/topic/how-to-manage-the-windows-boot-manager-revocations-for-secure-boot-changes-associated-with-cve-2023-24932-41a975df-beb2-40c1-99a3-b3ff139f832d), by doing the following:
 
 1. Set the `AvailableUpdates` registry value to `0x80`
-2. Validate step 3 is complete
-3. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task
-4. the `AvailableUpdates` registry value to `0x200`
-5. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task again
+2. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task to perform step 3, "Enable the revocation"
+3. Validate step 3 is complete
+4. Set the `AvailableUpdates` registry value to `0x200`
+5. Start the `\Microsoft\Windows\PI\Secure-Boot-Update` scheduled task to perform step 4, "Apply the SVN update to the firmware"
 6. Validate step 4 is complete
