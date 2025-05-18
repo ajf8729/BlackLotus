@@ -86,7 +86,7 @@ if ($SecureBootDB -notmatch 'Windows UEFI CA 2023') {
     # Wait for up to 2 minutes for event 1026 to indicate update was applied
     for ($i = 0; $i -lt 12; $i++) {
         # Event ID 1026: "Secure Boot Db update applied successfully"
-        $event1036 = Get-WinEvent -LogName System -MaxEvents 100 | Where-Object {$_.Id -eq 1036}
+        $event1036 = Get-WinEvent -LogName System -MaxEvents 1000 | Where-Object {$_.Id -eq 1036}
         if (-not $event1036) {
             Start-Sleep -Seconds 10
         }
