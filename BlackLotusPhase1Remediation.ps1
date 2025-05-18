@@ -1,13 +1,13 @@
 <#
 .SYNOPSIS
-This script will complete "Phase 1" (steps 1 & 2) of remediation steps for the BLackLotus aka CVE-2023-24932
+This script will complete "Phase 1" (steps 1 & 2) of remediation steps for BLackLotus aka CVE-2023-24932.
 
 .DESCRIPTION
 This script will perform steps 1 & 2 as follows:
 - Step 1: Install the updated certificate definitions to the DB
 - Step 2: Update the Boot Manager on your device
 
-When complete, the device will still be able to boot using media signed with the old CA. Phase 2 must be completed as well in order to complete mitigate CVE-2023-24932.
+When complete, the device will still be able to boot using media signed with the old CA. Phase 2 must be completed as well in order to completely mitigate CVE-2023-24932.
 
 This script was designed to be able to run in multiple ways, such as:
 - ConfigMgr CI
@@ -20,16 +20,10 @@ This script was designed to be able to run in multiple ways, such as:
 .\BlackLotusPhase1Remediation.ps1
 
 .NOTES
-Version: 1.0
+Version: 1.1
 Author: Anthony Fontanez
 Initial creation date: 2025-05-14
 #>
-
-#Requires -RunAsAdministrator
-
-[CmdletBinding()]
-Param(
-)
 
 function Write-Log {
     # Source: https://www.ephingadmin.com/powershell-cmtrace-log-function/
@@ -52,14 +46,6 @@ function Write-Log {
     $LogMessage | Out-File -Append -Encoding UTF8 -FilePath $LogFile
 }
 
-# Create log file if it does not exist
-$LogFile = "$env:TEMP\BlackLotusPhase1Remediation.log"
-if (-not (Test-Path -Path $LogFile)) {
-    New-Item -Path $LogFile
-}
-
-Write-Log -Message 'Starting BlackLotus Phase 1 Remediation' -Component 'Pre-Check' -Type 1 -LogFile $LogFile
-
 # Check if running as CcmExec to adjust script output for ConfigMgr use
 $ParentProcessName = (Get-Process -Id ((Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = $PID").ParentProcessId)).ProcessName
 if ($ParentProcessName -eq 'CcmExec' -or $ParentProcessName -eq 'WmiPrvSE') {
@@ -69,7 +55,6 @@ if ($ParentProcessName -eq 'CcmExec' -or $ParentProcessName -eq 'WmiPrvSE') {
 # Check if we are already in the expected state, and exit if so
 $WindowsUEFICA2023Capable = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot\Servicing -Name WindowsUEFICA2023Capable -ErrorAction Ignore
 if ($WindowsUEFICA2023Capable -eq 2) {
-    Write-Log -Message '"Windows UEFI CA 2023" certificate is in the DB and the system is starting from the 2023 signed boot manager' -Component 'Pre-Check' -Type 1 -LogFile $LogFile
     if ($RunningAsCcmExec) {
         return $true
     }
@@ -78,6 +63,14 @@ if ($WindowsUEFICA2023Capable -eq 2) {
         exit 0
     }
 }
+
+# Create log file if it does not exist
+$LogFile = "$env:TEMP\BlackLotusPhase1Remediation.log"
+if (-not (Test-Path -Path $LogFile)) {
+    New-Item -Path $LogFile
+}
+
+Write-Log -Message 'Starting BlackLotus Phase 1 Remediation' -Component 'Pre-Check' -Type 1 -LogFile $LogFile
 
 # Continue with remediation if WindowsUEFICA2023Capable ne 2
 
@@ -137,9 +130,9 @@ if ($SecureBootDB -match 'Windows UEFI CA 2023') {
     # Wait for up to 2 minutes for event 1799 or 1800 to indicate updated boot manager was installed or a reboot is required
     for ($i = 0; $i -lt 12; $i++) {
         # Event ID 1799: "Boot Manager signed with Windows UEFI CA 2023 was installed successfully"
-        $event1799 = Get-WinEvent -LogName System -MaxEvents 100 | Where-Object {$_.Id -eq 1799}
+        $event1799 = Get-WinEvent -LogName System -MaxEvents 1000 | Where-Object {$_.Id -eq 1799}
         # Event ID 1800: "Reboot needed before continuing"
-        $event1800 = Get-WinEvent -LogName System -MaxEvents 100 | Where-Object {$_.Id -eq 1800}
+        $event1800 = Get-WinEvent -LogName System -MaxEvents 1000 | Where-Object {$_.Id -eq 1800}
         if (-not $event1799 -and -not $event1800) {
             Start-Sleep -Seconds 10
         }
@@ -147,7 +140,7 @@ if ($SecureBootDB -match 'Windows UEFI CA 2023') {
             break
         }
     }
-    # If only event IF 1800 is logged, a reboot is required
+    # If only event ID 1800 is logged, a reboot is required
     if ($event1800 -and -not $event1799) {
         Write-Log -Message 'Reboot needed before continuing' -Component 'Step 2' -Type 2 -LogFile $LogFile
         if ($RunningAsCcmExec) {
