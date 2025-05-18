@@ -153,6 +153,24 @@ if ($SecureBootDBX -match 'Microsoft Windows Production PCA 2011') {
     # Set AvailableUpdates to 0x200 and trigger scheduled task to update the boot manager
     Set-ItemProperty -Path HKLM:\SYSTEM\CurrentControlSet\Control\Secureboot -Name AvailableUpdates -Value 0x200 -Force
     Start-ScheduledTask -TaskName '\Microsoft\Windows\PI\Secure-Boot-Update'
+    # Wait for up to 2 minutes for event ID 1042 to indicate update was applied
+    for ($i = 0; $i -lt 12; $i++) {
+        # Event ID 1042: "Secure Boot Dbx update to revoke older Boot Manager SVNs is applied successfully"
+        $event1042 = Get-WinEvent -LogName System -MaxEvents 1000 | Where-Object {$_.Id -eq 1042}
+        if (-not $event1042) {
+            Start-Sleep -Seconds 10
+        }
+    }
+    if (-not $event1042) {
+        Write-Log -Message 'SVN update is not complete' -Component 'Step 2' -Type 1 -LogFile $LogFile
+        if ($RunningAsCcmExec) {
+            return $true
+        }
+        else {
+            Write-Output 'SVN update is not complete'
+            exit 0
+        }
+    }
     # There is currently no way to validate that the SVN update is complete. Here we just check to see that AvailableUpdates has returned to 0.
     for ($i = 0; $i -lt 12; $i++) {
         $AvailableUpdates = Get-ItemPropertyValue -Path HKLM:\SYSTEM\CurrentControlSet\Control\SecureBoot -Name AvailableUpdates -ErrorAction Ignore
